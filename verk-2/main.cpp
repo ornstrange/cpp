@@ -1,3 +1,6 @@
+// Örn Óli Strange
+// 21.09.18
+
 #include <iostream>
 #include <string>
 using namespace std;

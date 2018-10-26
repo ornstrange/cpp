@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <vector>
 using namespace std;
 
 typedef unsigned int uint; // nenni ekki að skrifa alltaf unsigned int
@@ -41,16 +42,15 @@ uint * stouia(string input) { // string to unsigned int array
     return outArr;
 }
 
-splitIp(string input, uint *ip) {
-    string illegals[] = {'0','1','2','3','4','5','6','7','8','9'};
-    
-
+void splitIp(string input, uint *ip) {
+    sscanf(input, "%hu.%hu.%hu.%hu", &ip[0], &ip[1], &ip[2], &ip[3]);
 }
 
 
 int main() {
     uint ip[4], netMask, netMaskArr[4], bits, div, bitsReq, offset,
          lastOne, magicNumber, ones = 0xffffffff;
+    vector<int> hosts;
     string dashLine = "----------------+", ipRaw;
 
     cout << "Sláðu inn upphafsnet: ";

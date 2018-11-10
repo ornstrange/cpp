@@ -1,87 +1,127 @@
-// Örn Óli Strange
-// 25.09.18
-
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <cmath>
 #include <vector>
 using namespace std;
 
-typedef unsigned int uint; // nenni ekki að skrifa alltaf unsigned int
+typedef unsigned int uint; // unsigned int er alltof langt orð
 #define rep(i,a,b) for(int i = (a); i < (b); i++) // styttri for loop
+#define ctoi(x) static_cast<int>(x & 0xFF) // prentar char sem int
 
-void uitoa(uint num, uint *arr) { // unsigned int í array
-    rep(i,0,4) arr[i] = num << i*8 >> 24;
+bool ipStringToArray(string ipS, char *ip) {
+    string temp = "";
+    int iTemp, index = 0;
+    ipS += ".";
+    for (int i = 0; i < ipS.size(); i++) {
+        if (ipS[i] != '.') {
+            if (int(ipS[i]) > 57 || int(ipS[i]) < 48) // bara [0, 9] engir bókstafir
+                return false;
+            temp += ipS[i];
+        } else {
+            stringstream byte(temp);
+            byte >> iTemp;
+            if(iTemp > 255 || iTemp < 0) // tala á bilinu [0, 255]
+                return false;
+            ip[index] = (char)iTemp;
+            temp = "";
+            index++;
+        }
+    }
+    return (index != 4) ? false : true; // rétt lengd
 }
 
-uint atoui(uint *arr) {
-    uint output;
-    output = arr[0] << 24 | arr[1] << 16 | arr[2] << 8 | arr[3];
-    return output;
+bool bitsStringToBits(string bStr, vector<int>& bits) {
+    string sTemp = "";
+    int iTemp;
+    bStr += ",";
+    for (int i = 0; i < bStr.size(); i++) {
+        if (bStr[i] != ',') {
+            if (int(bStr[i]) > 57 || int(bStr[i]) < 48) // bara [0, 9] engir bókstafir
+                return false;
+            sTemp += bStr[i];
+        } else {
+            stringstream byte(sTemp);
+            byte >> iTemp;
+            bits.push_back(iTemp);
+            sTemp = "";
+        }
+    }
+    return true;
 }
 
-void addToIp(uint *arr, uint x = 1) {
-    uint temp = atoui(arr) + x;
-    uitoa(temp, arr);
+void uitoa(uint submaskui, char *mask) {
+    rep(i,0,4)
+        mask[i] = submaskui << (i * 8) >> ((3 - i) * 8);
 }
 
-string printIp(uint *ip) { // prenta ip fallega
-    string output = "";
-    int len;
-    rep(i,0,3) output += to_string(ip[i]) + ".";
-    output += to_string(ip[3]);
-    len = output.length();
-    rep(i,0,16 - len) output += " ";
-    output += "|";
-    return output;
-}
+int msb(int n) {
+    if (n == 0)
+        return 0;
 
-uint * stouia(string input) { // string to unsigned int array
-    static uint outArr[4];
-    return outArr;
-}
+    int msb = 0;
+    while (n != 0) {
+        n = n / 2;
+        msb++;
+    }
 
-void splitIp(string input, uint *ip) {
-    sscanf(input, "%hu.%hu.%hu.%hu", &ip[0], &ip[1], &ip[2], &ip[3]);
+    return msb;
 }
 
 
 int main() {
-    uint ip[4], netMask, netMaskArr[4], bits, div, bitsReq, offset,
-         lastOne, magicNumber, ones = 0xffffffff;
-    vector<int> hosts;
-    string dashLine = "----------------+", ipRaw;
 
-    cout << "Sláðu inn upphafsnet: ";
-    cin >> ipRaw;
-    ip = splitIp(ipRaw, ip);
-    offset = ip[3];
+    string ipString, bitsString, even;
+    char ip[4], mask[4];
+    int netBit, split, netsHowMany, netBitHowBig;
+    uint subnetMaskUi;
+    bool loopBreak = false;
+    vector<int> bits;
 
-    cout << "Sláðu inn fjölda netbita í upphafsneti: ";
-    cin >> bits;
-
-    cout << "Sláðu inn fjölda neta sem skipta á upphafsnetinu í: ";
-    cin >> div;
-
-    cout << endl
-         << "Ip net          |" << "Fyrsta Nothæfa  |"
-         << "Síðasta nothæfa |" << "Broadcast       |"
-         << "Maski           |"  << endl;
-    rep(_,0,5) cout << dashLine;
-    cout << endl;
-
-    netMask = ones << 32 - (bits + (int)log2(div));
-    uitoa(netMask, netMaskArr);
-    magicNumber = pow(2, 32 - (bits + (int)log2(div)));
-    uint addAlg[4] = {1, magicNumber - 3, 1, 1};
-
-    rep(i,0,div) {
-        rep(j, 0, 4) {
-            cout << printIp(ip);
-            addToIp(ip, addAlg[j]);
-        }
-        cout << printIp(netMaskArr) << endl;
+    cout << "Sláðu inn ip-töluna: ";
+    cin >> ipString;
+    while (!ipStringToArray(ipString, ip)) {
+        cout << "Ekki alveg rétt ip-tala... reyndu aftur" << endl;
+        cout << "Sláðu inn ip-töluna: ";
+        cin >> ipString;
     }
+
+    cout << "Sláðu inn netbita upphafs ip-tölu: ";
+    cin >> netBit;
+    while (netBit < 1 || netBit > 31) { // man ekki alveg mörkin...
+        cout << "Held að þetta gangi ekki alveg upp... reyndu aftur" << endl;
+        cout << "Sláðu inn netbita upphafs ip-tölu: ";
+        cin >> netBit;
+    }
+    subnetMaskUi = (0xFFFFFFFF >> (32 - netBit)) << (32 - netBit);
+    uitoa(subnetMaskUi, mask);
+
+    cout << "Eiga öll netin að vera jafn stór (j/n): ";
+    cin >> even;
+    
+    while (!loopBreak) {
+        if (even == "j") {
+            cout << "Sláðu inn fjölda neta: ";
+            cin >> netsHowMany;
+            cout << "Sláðu inn fjölda hosta fyrir hvert net: ";
+            cin >> netBitHowBig;
+            rep(i, 0, netsHowMany)
+                bits.push_back(netBitHowBig);
+            loopBreak = true;
+        } else if (even == "n") {
+            cout << "Sláðu inn fjölda hosta á hverju neti með kommu á milli: ";
+            cin >> bitsString;
+            bitsStringToBits(bitsString, bits);
+            loopBreak = true;
+        } else {
+            cout << "Ég skildi þetta ekki... reyndu aftur" << endl;
+            cout << "Eiga öll netin að vera jafn stór (j/n): ";
+            cin >> even;
+        }
+    }
+
+    rep(i,0,bits.size()) {
+         
+    }
+
     return 0;
 }
